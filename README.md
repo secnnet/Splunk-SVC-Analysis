@@ -8,7 +8,6 @@ This repository contains Splunk searches specifically designed to analyze and di
 3. Paste it in your Splunk instance and execute.
 4. Analyze the results to get insights into Splunk SVC usage and associated costs.
 
-
 ## License:
 This work is released under the MIT License. See the included LICENSE file for details.
 

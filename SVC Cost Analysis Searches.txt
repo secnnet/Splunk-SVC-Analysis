@@ -3,7 +3,6 @@ index = _internal skipped sourcetype=scheduler status=skipped host=*
 | stats count by app search_type reason savedsearch_name 
 | sort -count
 
-
 Minimum Frequency Analysis of Scheduled 'UCF' Saved Searches in Splunk
 | rest splunk_server=local "/servicesNS/-/-/saved/searches/" search="is_scheduled=1" search="disabled=0"
 | search title="*UCF*"
@@ -26,12 +25,10 @@ Minimum Frequency Analysis of Scheduled 'UCF' Saved Searches in Splunk
 | fields - c_d c_h c_hs c_h_div c_mday c_min c_min_div c_mins c_wday c_wdays c_wday_div pieces i_m i_min i_h i_wk 
 | fields savedsearch_name cron_minimum_freq cron_schedule eai:acl.app
 
-
 Count of Duplicate Runs for UCF Saved Searches in Splunk Scheduler
 index=_internal sourcetype=scheduler scheduled_time=* savedsearch_name=*UCF* 
 | stats count by scheduled_time, savedsearch_name 
 | where count > 1
-
 
 UCF Saved Search with the Longest Maximum Duration and Its Statistics
 index=_audit action=search info=completed
@@ -42,7 +39,6 @@ index=_audit action=search info=completed
 | head 1
 | eval latest_endtime_str=strftime(latest_endtime, "%Y-%m-%d %H:%M:%S")
 | table savedsearch_name, avg_duration, min_duration, max_duration, latest_endtime_str
-
 
 Comprehensive Analysis of UCF-related Saved Searches Performance Metrics in Splunk
 index=_internal sourcetype=scheduler result_count 
@@ -57,7 +53,6 @@ index=_internal sourcetype=scheduler result_count
 | sort - avg(run_time) 
 | search "SPL Query"="*UCF*" 
 | table "Saved Search Name", App, Owner, "SPL Query", "Dispatch Earliest Time", "Dispatch Latest Time", "Cron Schedule", hosts, execution_count, sparkline, *(result_count), sum(run_time), *(run_time)
-
 
 UCF Dashboards in Splunk: Last Accessed Date and User
 | rest /servicesNS/-/-/data/ui/views splunk_server=* 
@@ -76,7 +71,6 @@ UCF Dashboards in Splunk: Last Accessed Date and User
 | convert ctime(Time) 
 | fields - Now
 
-
 Splunk Service Usage and Cost Analysis for 'ES' Search Head Over the Past 90 Days
 index=summary source="splunk-svc-consumer" svc_usage=* search_head_names="es"
 | eval search_app=coalesce(search_app,"N/A"),search_type=coalesce(search_type,"N/A"),search_user=coalesce(search_user,"N/A")
@@ -86,7 +80,6 @@ index=summary source="splunk-svc-consumer" svc_usage=* search_head_names="es"
 | eval es_svc_allowance="882"
 | eval optimal_threshold=if(es_svc_allowance>0, es_svc_allowance*0.8, null())
 | eval cost="£" + tostring(round(utilized_svc, 2), "commas")
-
 
 Detailed User Search Behavior and Efficiency Analysis in Splunk with Error Insights
 index=_audit action=search info=completed 
