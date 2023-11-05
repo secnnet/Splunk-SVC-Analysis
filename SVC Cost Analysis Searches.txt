@@ -140,7 +140,7 @@ This search would help you monitor storage data usage to stay within the 1.8 Pb 
 index=_internal source=*metrics.log* group=per_index_thruput series=*
 | timechart span=1d sum(kb) as Daily_Storage_KB
 | eval Daily_Storage_TB = round(Daily_Storage_KB / 1024 / 1024, 3)
-| eval Contracted_Storage_TB = 1800  // Assuming 1.8 Pb equals 1800 Tb
+| eval Contracted_Storage_TB = 1800  
 | eval Over_Contracted_Storage=if(Daily_Storage_TB > Contracted_Storage_TB, "Yes", "No")
 | table _time, Daily_Storage_TB, Contracted_Storage_TB, Over_Contracted_Storage
 
