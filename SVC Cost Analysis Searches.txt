@@ -115,3 +115,16 @@ index=_audit action=search info=completed
     | eval Error_Cause = if(searchmatch("error") OR searchmatch("failed"), "Error", "No Error")
     | table user, search, savedsearch_name, Error_Cause
 ]
+
+Weekend Threshold Analysis for Service Consumption
+index=summary source="splunk-svc-consumer" svc_usage=* search_head_names="es"
+| eval search_app=coalesce(search_app,"N/A"), search_type=coalesce(search_type,"N/A"), search_user=coalesce(search_user,"N/A")
+| where _time >= relative_time(now(), "-7d@d") AND (strftime(_time, "%A")="Saturday" OR strftime(_time, "%A")="Sunday")
+| bin _time span=1h
+| stats sum(svc_usage) as utilized_svc by _time
+| eval es_svc_allowance=882
+| eval optimal_threshold=if(es_svc_allowance>0, es_svc_allowance*0.8, null())
+| eval cost="£" + tostring(round(utilized_svc, 2), "commas")
+| eval warning_condition=if(utilized_svc > optimal_threshold, "HighUsage", "Normal")
+| eval performance_issue=if(utilized_svc > es_svc_allowance, "PotentialIssue", "NoIssue")
+| table _time, utilized_svc, warning_condition, performance_issue
