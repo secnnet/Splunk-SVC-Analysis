@@ -128,3 +128,20 @@ index=summary source="splunk-svc-consumer" svc_usage=* search_head_names="es"
 | eval warning_condition=if(utilized_svc > optimal_threshold, "HighUsage", "Normal")
 | eval performance_issue=if(utilized_svc > es_svc_allowance, "PotentialIssue", "NoIssue")
 | table _time, utilized_svc, warning_condition, performance_issue
+
+This search would help you monitor the SVC usage over time to ensure it stays within the 1359 SVCs limit and to identify trends or spikes in usage.
+index=summary source="splunk-svc-consumer" svc_usage=*
+| timechart span=1d sum(svc_usage) as Daily_SVC_Usage
+| eval Contracted_SVC_Limit=1359
+| eval Over_Contracted_Limit=if(Daily_SVC_Usage > Contracted_SVC_Limit, "Yes", "No")
+| table _time, Daily_SVC_Usage, Contracted_SVC_Limit, Over_Contracted_Limit
+
+This search would help you monitor storage data usage to stay within the 1.8 Pb limit and to understand data ingestion trends.
+index=_internal source=*metrics.log* group=per_index_thruput series=*
+| timechart span=1d sum(kb) as Daily_Storage_KB
+| eval Daily_Storage_TB = round(Daily_Storage_KB / 1024 / 1024, 3)
+| eval Contracted_Storage_TB = 1800  // Assuming 1.8 Pb equals 1800 Tb
+| eval Over_Contracted_Storage=if(Daily_Storage_TB > Contracted_Storage_TB, "Yes", "No")
+| table _time, Daily_Storage_TB, Contracted_Storage_TB, Over_Contracted_Storage
+
+
