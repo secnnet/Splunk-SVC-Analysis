@@ -144,4 +144,123 @@ index=_internal source=*metrics.log* group=per_index_thruput series=*
 | eval Over_Contracted_Storage=if(Daily_Storage_TB > Contracted_Storage_TB, "Yes", "No")
 | table _time, Daily_Storage_TB, Contracted_Storage_TB, Over_Contracted_Storage
 
+Monitoring SVC Usage
+index=summary source="splunk-svc-consumer" svc_usage=*
+| timechart span=1d sum(svc_usage) as Daily_SVC_Usage
+| eval Contracted_SVC_Limit=1359
+| eval Over_Contracted_Limit=if(Daily_SVC_Usage > Contracted_SVC_Limit, "Yes", "No")
+| table _time, Daily_SVC_Usage, Contracted_SVC_Limit, Over_Contracted_Limit
 
+Monitoring Storage Data Usage
+index=_internal source=*metrics.log* group=per_index_thruput series=*
+| timechart span=1d sum(kb) as Daily_Storage_KB
+| eval Daily_Storage_TB = round(Daily_Storage_KB / 1024 / 1024, 3)
+| eval Contracted_Storage_TB = 1800
+| eval Over_Contracted_Storage=if(Daily_Storage_TB > Contracted_Storage_TB, "Yes", "No")
+| table _time, Daily_Storage_TB, Contracted_Storage_TB, Over_Contracted_Storage
+
+Indexing Volume by Source Type
+index=_internal source=*metrics.log* group=per_sourcetype_thruput
+| timechart span=1d sum(kb) as DailyVolumeKB by series
+| eval DailyVolumeGB = round(DailyVolumeKB / 1024 / 1024, 2)
+| fieldformat DailyVolumeGB = tostring(DailyVolumeGB) + " GB"
+| rename series as SourceType
+
+License Usage Monitoring
+index=_internal source=*license_usage.log* type=Usage
+| timechart span=1d sum(b) as DailyBytes
+| eval DailyGB = round(DailyBytes / 1024^3, 2)
+| fieldformat DailyGB = tostring(DailyGB) + " GB"
+
+Identifying Expensive Searches
+index=_internal source=*audit.log* action=search info=completed
+| eval searchDuration = round(duration, 2)
+| where searchDuration > 60 
+| table _time, user, search, searchDuration
+| sort - searchDuration
+
+Errors and Warnings Monitoring
+index=_internal sourcetype=splunkd (log_level=ERROR OR log_level=WARN)
+| timechart span=1h count by log_level
+
+Data Retention and Index Sizing
+| dbinspect index=*
+| eval sizeGB = round(sizeOnDiskMB / 1024, 2)
+| stats sum(sizeGB) as TotalSizeGB by index
+| eval RetentionPeriod = case(index="indexA", "180", index="indexB", "90", true(), "default")
+| table index, TotalSizeGB, RetentionPeriod
+
+User Activity Monitoring
+index=_audit action=search (info=completed OR info=started)
+| stats count by user
+| sort - count
+
+Scheduled Searches Monitoring
+index=_internal source=*scheduler.log*
+| eval status = if(savedsearch_name=="", "Skipped", "Ran")
+| stats count by savedsearch_name, status
+| sort - count
+
+Forwarder Monitoring
+index=_internal sourcetype=splunkd component=Metrics group=tcpin_connections
+| timechart span=1h sum(kbps) as KBps by host
+| eval MBps = round(KBps / 1024, 2)
+| fieldformat MBps = tostring(MBps) + " MB/s"
+
+Data Input Monitoring
+index=_internal sourcetype=splunkd component=Metrics group=per_index_thruput
+| timechart span=1h sum(kb) as KB by source
+| eval MB = round(KB / 1024, 2)
+| fieldformat MB = tostring(MB) + " MB"
+
+SVC Usage Monitoring
+index=summary source="splunk-svc-consumer" svc_usage=*
+| timechart span=1d sum(svc_usage) as Daily_SVC_Usage
+| eval Contracted_SVC_Limit=1359
+| eval Over_Contracted_Limit=if(Daily_SVC_Usage > Contracted_SVC_Limit, "Yes", "No")
+| table _time, Daily_SVC_Usage, Contracted_SVC_Limit, Over_Contracted_Limit
+
+Storage Data Usage Monitoring
+index=_internal source=*metrics.log* group=per_index_thruput series=*
+| timechart span=1d sum(kb) as Daily_Storage_KB
+| eval Daily_Storage_TB = round(Daily_Storage_KB / 1024 / 1024, 3)
+| eval Contracted_Storage_TB = 1800  Assuming 1.8 Pb equals 1800 Tb
+| eval Over_Contracted_Storage=if(Daily_Storage_TB > Contracted_Storage_TB, "Yes", "No")
+| table _time, Daily_Storage_TB, Contracted_Storage_TB, Over_Contracted_Storage
+
+SVC Usage Alert
+index=summary source="splunk-svc-consumer" svc_usage=*
+| timechart span=1d sum(svc_usage) as Daily_SVC_Usage
+| eval Contracted_SVC_Limit=1359
+| where Daily_SVC_Usage > Contracted_SVC_Limit
+| streamstats count as AlertCount
+| where AlertCount=1
+| sendemail to="admin@example.com" subject="Splunk SVC Usage Alert" message="SVC usage exceeded contracted limit."
+
+SVC Optimization Opportunities
+index=summary source="splunk-svc-consumer" svc_usage=*
+| timechart span=1d avg(svc_usage) as Avg_Daily_SVC_Usage
+| where Avg_Daily_SVC_Usage < (0.8 * Contracted_SVC_Limit)
+| table _time, Avg_Daily_SVC_Usage
+
+SVC Usage Forecast
+index=summary source="splunk-svc-consumer" svc_usage=*
+| timechart span=1d sum(svc_usage) as Daily_SVC_Usage
+| predict Daily_SVC_Usage future_timespan=30 as forecast
+| fields _time, Daily_SVC_Usage, forecast
+
+SVC Usage by Department
+index=summary source="splunk-svc-consumer" svc_usage=* by department
+| timechart span=1d sum(svc_usage) as Daily_SVC_Usage by department
+
+Cost Analysis
+index=summary source="splunk-svc-consumer" svc_usage=*
+| timechart span=1d sum(svc_usage) as Daily_SVC_Usage
+| eval Daily_Cost = Daily_SVC_Usage * Cost_Per_SVC
+| table _time, Daily_SVC_Usage, Daily_Cost
+
+Data Cleanup Opportunities
+| dbinspect index=*
+| eval isFrozen=if(state=="frozen", "Yes", "No")
+| where isFrozen="No" AND age > Your_Retention_Period
+| table index, size, age
