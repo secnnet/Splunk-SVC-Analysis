@@ -264,3 +264,19 @@ Data Cleanup Opportunities
 | eval isFrozen=if(state=="frozen", "Yes", "No")
 | where isFrozen="No" AND age > Your_Retention_Period
 | table index, size, age
+
+This search provides a count of skipped scheduled searches, sorted by application, search type, reason, and the name of the saved search.
+index = _internal skipped sourcetype=scheduler status=skipped host=* UCF
+| stats count by app search_type reason savedsearch_name 
+| sort -count
+
+This search looks for logs related to license usage that have exceeded predefined limits.
+index=_internal sourcetype=splunkd component=LicenseUsage "exceeded"
+
+This search fetches views with "UCF" in the title from Splunk's UI views, displays their last viewed time, and filters out those not viewed in the last 90 days.
+| rest splunk_server=local "/servicesNS/-/-/data/ui/views" 
+| search title="*UCF*" 
+| table title eai:acl.app lastViewedTime
+| eval lastViewedEpoch=strptime(lastViewedTime, "%Y-%m-%dT%H:%M:%S.%Q%:z") 
+| where isnull(lastViewedEpoch) OR (now() - lastViewedEpoch) > (90*24*60*60)
+
